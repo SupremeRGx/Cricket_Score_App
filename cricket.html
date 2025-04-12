@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cricket Live</title>
+  <!-- Material Icons for UI (e.g., menu, star, flag, share) -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <style>
+    /* ------------------------------
+       CSS Variables & Theme Defaults
+       Dark theme is default (charcoal gray background, not pure black)
+    ------------------------------ */
+    :root {
+      --bg-color: #2c2c2c;
+      --text-color: #e0e0e0;
+      --card-bg: #383838;
+      --nav-bg: #333333;
+      --accent-color: #4fc3f7;
+      --input-bg: #444444;
+    }
+    /* Light theme alternatives, if needed */
+    body.light-mode {
+      --bg-color: #ffffff;
+      --text-color: #333333;
+      --card-bg: #f8f8f8;
+      --nav-bg: #ffffff;
+      --accent-color: #1976d2;
+      --input-bg: #f0f0f0;
+    }
+
+    /* ------------------------------
+       Reset & Base Styles
+    ------------------------------ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background-color: var(--nav-bg);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    header .menu-btn,
+    header .theme-btn {
+      cursor: pointer;
+      font-size: 28px;
+      color: var(--accent-color);
+      margin-right: 16px;
+    }
+    header input[type="text"] {
+      flex: 1;
+      background-color: var(--input-bg);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 16px;
+      color: var(--text-color);
+      outline: none;
+      /* Added margin-right for extra spacing */
+      margin-right: 12px;
+    }
+
+    /* ------------------------------
+       Native-like Side Navigation Drawer
+       (Note: using transform for hiding/revealing the drawer)
+    ------------------------------ */
+    .side-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100%;
+      background-color: var(--nav-bg);
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+      transform: translateX(-280px);
+      transition: transform 0.35s ease;
+      z-index: 25;
+      padding-top: 60px;
+    }
+    /* When open, slide the drawer into view */
+    .side-nav.open {
+      transform: translateX(0);
+    }
+    .side-nav ul {
+      list-style: none;
+    }
+    .side-nav li {
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .side-nav li:hover {
+      background-color: var(--card-bg);
+    }
+
+    /* Overlay covers the rest of the UI when the drawer is open */
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      z-index: 15;
+    }
+
+    /* ------------------------------
+       Container & Grid Layout
+    ------------------------------ */
+    .container {
+      padding: 16px;
+      padding-bottom: 80px; /* space for bottom nav */
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    /* ------------------------------
+       Card Styles
+    ------------------------------ */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeInUp 0.5s;
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-header h3 {
+      font-size: 18px;
+      margin: 0;
+    }
+    .card-actions i {
+      cursor: pointer;
+      font-size: 24px;
+      color: var(--accent-color);
+      margin-left: 8px;
+    }
+    .card-body p {
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    /* Country card extra styling */
+    .country-card {
+      text-align: center;
+    }
+    .country-card img {
+      height: 60px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* ------------------------------
+       Bottom Navigation Bar
+    ------------------------------ */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--nav-bg);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 0;
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.3);
+      z-index: 20;
+    }
+    .bottom-nav i {
+      font-size: 28px;
+      color: var(--accent-color);
+      cursor: pointer;
+    }
+
+    /* ------------------------------
+       Fade-in Animation for Cards
+    ------------------------------ */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body class="dark-mode">
+  <!-- Overlay element -->
+  <div id="overlay" onclick="closeNav()"></div>
+
+  <!-- Side Navigation Drawer -->
+  <nav id="sideNav" class="side-nav">
+    <ul>
+      <li onclick="switchTab('matches'); closeNav()">Matches</li>
+      <li onclick="switchTab('countries'); closeNav()">Countries</li>
+      <li onclick="switchTab('favorites'); closeNav()">Favorites</li>
+      <li onclick="alert('Settings coming soon'); closeNav()">Settings</li>
+      <li onclick="alert('About this app\nCricket Live v1\nPowered by CricAPI'); closeNav()">About</li>
+    </ul>
+  </nav>
+
+  <!-- HEADER -->
+  <header>
+    <i class="material-icons menu-btn" onclick="toggleNav()">menu</i>
+    <input type="text" id="searchInput" placeholder="Search matches or countries..." oninput="filterContent()" />
+    <i class="material-icons theme-btn" id="themeIcon" onclick="toggleTheme()">brightness_7</i>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <div class="container" id="contentContainer">
+    <p id="loadingText">Loading...</p>
+  </div>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <div class="bottom-nav">
+    <i class="material-icons" onclick="switchTab('matches')">sports_cricket</i>
+    <i class="material-icons" onclick="switchTab('countries')">flag</i>
+    <i class="material-icons" onclick="switchTab('favorites')">star</i>
+    <i class="material-icons" onclick="shareApp()">share</i>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    // Global variables and default tab
+    let currentTab = "matches"; // possible values: matches, countries, favorites
+    let matchesData = [];
+    let countriesData = [];
+    let pinnedMatches = JSON.parse(localStorage.getItem("pinnedMatches")) || [];
+
+    // ------------------------------
+    // SIDE DRAWER FUNCTIONS
+    // ------------------------------
+    function toggleNav() {
+      const nav = document.getElementById("sideNav");
+      const overlay = document.getElementById("overlay");
+      if (nav.classList.contains("open")) {
+        nav.classList.remove("open");
+        overlay.style.display = "none";
+      } else {
+        nav.classList.add("open");
+        overlay.style.display = "block";
+      }
+    }
+    function closeNav() {
+      const nav = document.getElementById("sideNav");
+      const overlay = document.getElementById("overlay");
+      nav.classList.remove("open");
+      overlay.style.display = "none";
+    }
+
+    // ------------------------------
+    // THEME TOGGLING (Dark is default)
+    // ------------------------------
+    function toggleTheme() {
+      const body = document.body;
+      const themeIcon = document.getElementById("themeIcon");
+      if (body.classList.contains("light-mode")) {
+        body.classList.remove("light-mode");
+        themeIcon.textContent = "brightness_7";
+      } else {
+        body.classList.add("light-mode");
+        themeIcon.textContent = "brightness_4";
+      }
+    }
+
+    // ------------------------------
+    // TAB SWITCHING & CONTENT LOADING
+    // ------------------------------
+    function switchTab(tab) {
+      currentTab = tab;
+      // Clear search input when switching tabs
+      document.getElementById("searchInput").value = "";
+      renderContent();
+      if (tab === "matches" && matchesData.length === 0) {
+        fetchMatches();
+      }
+      if (tab === "countries" && countriesData.length === 0) {
+        fetchCountries();
+      }
+    }
+    function renderContent() {
+      const container = document.getElementById("contentContainer");
+      if ((currentTab === "matches" && matchesData.length === 0) ||
+          (currentTab === "countries" && countriesData.length === 0)) {
+        container.innerHTML = "<p id='loadingText'>Loading...</p>";
+        return;
+      }
+      container.innerHTML = "";
+      const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+      if (currentTab === "matches") {
+        renderMatches(searchTerm);
+      } else if (currentTab === "countries") {
+        renderCountries(searchTerm);
+      } else if (currentTab === "favorites") {
+        renderFavorites(searchTerm);
+      }
+    }
+
+    // ------------------------------
+    // FETCH & RENDER MATCHES
+    // ------------------------------
+    async function fetchMatches() {
+      renderContent(); // show loading text
+      try {
+        const API_URL = "https://api.cricapi.com/v1/matches?apikey=e3cfebb2-fde2-4c1a-9ea5-f10dea0c888e&offset=0";
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const json = await response.json();
+        matchesData = json.data || [];
+        renderContent();
+      } catch (error) {
+        console.error("Error fetching matches:", error);
+        document.getElementById("contentContainer").innerHTML =
+          "<p>Error loading matches. Please try again later.</p>";
+      }
+    }
+    function renderMatches(searchTerm = "") {
+      const container = document.getElementById("contentContainer");
+      let filtered = matchesData.filter(match => {
+        const name = (match.name || "").toLowerCase();
+        const tournament = (match.tournament || "").toLowerCase();
+        const status = (match.status || "").toLowerCase();
+        return name.includes(searchTerm) ||
+               tournament.includes(searchTerm) ||
+               status.includes(searchTerm);
+      });
+      const favorites = filtered.filter(match => pinnedMatches.includes(match.match_id));
+      const others = filtered.filter(match => !pinnedMatches.includes(match.match_id));
+      
+      if (favorites.length > 0) {
+        const favHeader = document.createElement("h2");
+        favHeader.textContent = "Favorite Matches";
+        container.appendChild(favHeader);
+        favorites.forEach(match => container.appendChild(createMatchCard(match, true)));
+      }
+      const header = document.createElement("h2");
+      header.textContent = "All Matches";
+      container.appendChild(header);
+      if (filtered.length === 0) {
+        container.innerHTML += "<p>No matches found.</p>";
+      } else {
+        others.forEach(match => container.appendChild(createMatchCard(match)));
+      }
+    }
+    function createMatchCard(match, isFavorite = false) {
+      const card = document.createElement("div");
+      card.className = "card";
+      const headerDiv = document.createElement("div");
+      headerDiv.className = "card-header";
+      const title = document.createElement("h3");
+      title.textContent = match.name || "Match Title";
+      headerDiv.appendChild(title);
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "card-actions";
+      const pinIcon = document.createElement("i");
+      pinIcon.className = "material-icons";
+      pinIcon.textContent = isFavorite ? "star" : "star_border";
+      pinIcon.onclick = () => togglePin(match.match_id);
+      actionsDiv.appendChild(pinIcon);
+      const shareIcon = document.createElement("i");
+      shareIcon.className = "material-icons";
+      shareIcon.textContent = "share";
+      shareIcon.onclick = () => shareMatch(match);
+      actionsDiv.appendChild(shareIcon);
+      headerDiv.appendChild(actionsDiv);
+      card.appendChild(headerDiv);
+      const bodyDiv = document.createElement("div");
+      bodyDiv.className = "card-body";
+      bodyDiv.innerHTML = `
+        <p>Status: ${match.status || "Upcoming"}</p>
+        <p>Score: ${match.score || "N/A"}</p>
+        <p>Tournament: ${match.tournament || "N/A"}</p>
+        <p>${match.date ? new Date(match.date).toLocaleString() : ""}</p>
+      `;
+      card.appendChild(bodyDiv);
+      return card;
+    }
+
+    // ------------------------------
+    // FETCH & RENDER COUNTRIES
+    // ------------------------------
+    async function fetchCountries() {
+      renderContent();
+      try {
+        const API_URL = "https://api.cricapi.com/v1/countries?apikey=e3cfebb2-fde2-4c1a-9ea5-f10dea0c888e&offset=0";
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const json = await response.json();
+        countriesData = json.data || [];
+        renderContent();
+      } catch (error) {
+        console.error("Error fetching countries:", error);
+        document.getElementById("contentContainer").innerHTML =
+          "<p>Error loading countries. Please try again later.</p>";
+      }
+    }
+    function renderCountries(searchTerm = "") {
+      const container = document.getElementById("contentContainer");
+      if (countriesData.length === 0) {
+        container.innerHTML = "<p>Loading...</p>";
+        return;
+      }
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      const filtered = countriesData.filter(country =>
+        (country.name || "").toLowerCase().includes(searchTerm)
+      );
+      if (filtered.length === 0) {
+        container.innerHTML = "<p>No countries found.</p>";
+        return;
+      }
+      filtered.forEach(country => {
+        const card = document.createElement("div");
+        card.className = "card country-card";
+        card.innerHTML = `
+          <img src="${country.genericFlag}" alt="${country.name} Flag">
+          <h3>${country.name}</h3>
+        `;
+        grid.appendChild(card);
+      });
+      container.appendChild(grid);
+    }
+
+    // ------------------------------
+    // RENDER FAVORITES (PINNED MATCHES)
+    // ------------------------------
+    function renderFavorites(searchTerm = "") {
+      const container = document.getElementById("contentContainer");
+      let filtered = matchesData.filter(match =>
+        pinnedMatches.includes(match.match_id) &&
+        ((match.name || "").toLowerCase().includes(searchTerm) ||
+         (match.tournament || "").toLowerCase().includes(searchTerm))
+      );
+      const header = document.createElement("h2");
+      header.textContent = "Favorite Matches";
+      container.appendChild(header);
+      if (filtered.length === 0) {
+        container.innerHTML += "<p>No favorite matches found.</p>";
+      } else {
+        filtered.forEach(match => container.appendChild(createMatchCard(match, true)));
+      }
+    }
+
+    // ------------------------------
+    // PIN (FAVORITE) TOGGLE FOR MATCHES
+    // ------------------------------
+    function togglePin(matchId) {
+      if (pinnedMatches.includes(matchId)) {
+        pinnedMatches = pinnedMatches.filter(id => id !== matchId);
+      } else {
+        pinnedMatches.push(matchId);
+      }
+      localStorage.setItem("pinnedMatches", JSON.stringify(pinnedMatches));
+      renderContent();
+    }
+
+    // ------------------------------
+    // SEARCH FILTERING
+    // ------------------------------
+    function filterContent() {
+      renderContent();
+    }
+
+    // ------------------------------
+    // SHARE FUNCTIONS (Web Share API)
+    // ------------------------------
+    function shareMatch(match) {
+      const shareData = {
+        title: match.name || "Cricket Match",
+        text: `Check out this match: ${match.name}`,
+        url: window.location.origin + window.location.pathname + "?match=" + match.match_id,
+      };
+      if (navigator.share) {
+        navigator.share(shareData).catch(err => console.error("Error sharing match:", err));
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareData.url);
+        alert("Match link copied to clipboard");
+      }
+    }
+    function shareApp() {
+      const shareData = {
+        title: "Cricket Live",
+        text: "Check out this awesome Cricket Live app!",
+        url: window.location.href,
+      };
+      if (navigator.share) {
+        navigator.share(shareData).catch(err => console.error("Error sharing app:", err));
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareData.url);
+        alert("App link copied to clipboard");
+      }
+    }
+
+    // ------------------------------
+    // INITIAL LOAD
+    // ------------------------------
+    window.onload = function() {
+      switchTab(currentTab);
+      if (currentTab === "matches") fetchMatches();
+      else if (currentTab === "countries") fetchCountries();
+    };
+  </script>
+</body>
+</html>
